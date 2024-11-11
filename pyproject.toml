@@ -12,6 +12,7 @@ build-backend = "setuptools.build_meta"
 [project]
 authors = [
     {name = "Iris-grib Contributors", email = "scitools.pub@gmail.com"}
+    {name = "Iris-grib-zsw Autor", email = "os.simopt@zsw-bw.de"}
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -31,7 +32,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
-description = "Functionality for converting between weather/climate datasets stored as GRIB files and SciTools-Iris Cubes"
+description = "Functionality for converting between weather/climate datasets stored as GRIB files and SciTools-Iris Cubes. GRIB loading for Iris with a modification to read fields 150"
 dynamic = [
     "dependencies",
     "optional-dependencies",
@@ -50,10 +51,10 @@ name = "iris-grib"
 requires-python = ">=3.10"
 
 [project.urls]
-Code = "https://github.com/SciTools/iris-grib"
+Code = "https://github.com/os-simopt/iris-grib"
 Discussions = "https://github.com/SciTools/iris-grib/discussions"
-Documentation = "https://iris-grib.readthedocs.io/en/stable/"
-Issues = "https://github.com/SciTools/iris-grib/issues"
+Documentation = "https://github.com/os-simopt/iris-grib"
+Issues = "https://github.com/os-simopt/iris-grib"
 
 [tool.setuptools]
 license-files = ["LICENSE"]

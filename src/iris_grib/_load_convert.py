@@ -224,6 +224,39 @@ def _hindcast_fix(forecast_time):
 
     return forecast_time
 
+def fixup_float32_from_int32(value):
+    """
+    Workaround for use when reading an IEEE 32-bit floating-point value
+    which the ECMWF GRIB API has erroneously treated as a 4-byte signed
+    integer.
+    
+    """
+    # Convert from two's complement to sign-and-magnitude.
+    # NB. The bit patterns 0x00000000 and 0x80000000 will both be
+    # returned by the ECMWF GRIB API as an integer 0. Because they
+    # correspond to positive and negative zero respectively it is safe
+    # to treat an integer 0 as a positive zero.
+    if value < 0:
+        value = 0x80000000 - value
+    value_as_uint32 = np.array(value, dtype="u4")
+    value_as_float32 = value_as_uint32.view(dtype="f4")
+    return float(value_as_float32)
+
+def fixup_int32_from_uint32(value):
+    """
+    Workaround for use when reading a signed, 4-byte integer which the
+    ECMWF GRIB API has erroneously treated as an unsigned, 4-byte
+    integer.
+
+    NB. This workaround is safe to use with values which are already
+    treated as signed, 4-byte integers.
+
+    """
+    if value >= 0x80000000:
+        value = 0x80000000 - value
+    return value
+
+
 
 ###############################################################################
 #
@@ -818,10 +851,10 @@ def grid_definition_template_12(section, metadata):
     cs = icoord_systems.TransverseMercator(lat, lon, easting, northing, scale, geog_cs)
 
     # Fetch grid extents
-    x1 = section["X1"]
-    y1 = section["Y1"]
-    x2 = section["X2"]
-    y2 = section["Y2"]
+    x1 = fixup_int32_from_uint32(section["X1"])
+    y1 = fixup_int32_from_uint32(section["Y1"])
+    x2 = fixup_int32_from_uint32(section["X2"])
+    y2 = fixup_int32_from_uint32(section["Y2"])
 
     # Rather unhelpfully this grid definition template seems to be
     # overspecified, and thus open to inconsistency. But for determining
@@ -1593,9 +1626,9 @@ def hybrid_factories(section, metadata):
             )
             raise TranslationError(msg)
 
-        if typeOfFirstFixedSurface in [105, 118, 119]:
+        if typeOfFirstFixedSurface in [105, 118, 119, 150]:
             # Hybrid level (105), Hybrid height level (118) and Hybrid
-            # pressure level (119).
+            # pressure level (119), Generalized vertical height coordinate (150)
             scaleFactor = section["scaleFactorOfFirstFixedSurface"]
             if scaleFactor != 0:
                 msg = (
@@ -1661,6 +1694,66 @@ def hybrid_factories(section, metadata):
             raise TranslationError(msg)
 
 
+def generalized_vertical_coordinates(section, metadata):
+    """
+    Translate the section 4 generalized vertical coordinates (level type 150).
+
+    Updates the metadata in-place with the translations.
+
+    Reference GRIB2 Code Table 4.5 and documentation of COSMO-D2 model
+    by DWD.
+    Parameter HHL must be read in to reconstruct the height grid; we
+    refrain from giving misleading height and pressure coordinates. Model
+    level refers to full levels (e.g. level centers). Half levels (e.g. level
+    boundaries) consequently are assigned non-integer values.
+
+    Args:
+
+    * section:
+        Dictionary of coded key/value pairs from section 4 of the message.
+
+    * metadata:
+        :class:`collections.OrderedDict` of metadata.
+
+    """
+    typeOfSecondFixedSurface = section["typeOfSecondFixedSurface"]
+    if typeOfSecondFixedSurface not in [150, 101, _TYPE_OF_FIXED_SURFACE_MISSING]:
+        msg = (
+            "Product definition section 4 contains unsupported type "
+            "of second fixed surface [{}]".format(typeOfSecondFixedSurface)
+        )
+        raise TranslationError(msg)
+
+    scaleFactor = section["scaleFactorOfFirstFixedSurface"]
+    if scaleFactor != 0:
+        msg = (
+            "Product definition section 4 contains invalid scale "
+            "factor of first fixed surface [{}]".format(scaleFactor)
+        )
+        raise TranslationError(msg)
+
+    # Create the model level number scalar coordinate.
+    # In COSMO-D2 this references a layer boundary for TKE and W, and the
+    # layer center of the layer below the boundary in other cases, hence
+    # we average over the two level numbers given
+    scaledValue = section["scaledValueOfFirstFixedSurface"]
+
+    if typeOfSecondFixedSurface in [101, _TYPE_OF_FIXED_SURFACE_MISSING]:
+        # Message contains the level definition field HHL itself
+        # or is defined on the half level
+        # => use half level as a float value
+        model_level = float(scaledValue) - 0.5
+    else:
+        # Message contains physical variable on level center
+        model_level = scaledValue
+    coord = DimCoord(
+        model_level,
+        standard_name="model_level_number",
+        attributes=dict(positive="down"),
+    )
+    metadata["aux_coords_and_dims"].append((coord, None))
+
+
 def vertical_coords(section, metadata):
     """
     Translate the vertical coordinates or hybrid vertical coordinates.
@@ -1680,7 +1773,10 @@ def vertical_coords(section, metadata):
     """
     if section["NV"] > 0:
         # Generate hybrid vertical coordinates.
-        hybrid_factories(section, metadata)
+        if section["typeOfFirstFixedSurface"] == 150:
+            generalized_vertical_coordinates(section, metadata)
+        else:
+            hybrid_factories(section, metadata)
     else:
         # Generate vertical coordinate.
         typeOfFirstFixedSurface = section["typeOfFirstFixedSurface"]

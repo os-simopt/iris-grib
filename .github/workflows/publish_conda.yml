@@ -1,0 +1,82 @@
+name: publish_conda
+
+on:
+  release:
+    types: [published]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.12'    
+    - name: Install build environment
+      run: |
+        conda --version
+        conda install -y anaconda-client conda-build conda-verify    
+    - name: Fetch tags and show version
+      run: |       
+        git fetch --prune --unshallow --tags # checkout action does not get these
+        git describe --tags --dirty --always
+    - name: Build package
+      run: |
+        export INPUT_SUBDIR='conda-recipe'
+        export INPUT_PLATFORMS='win osx linux'
+
+        set -ex
+        set -o pipefail
+
+        go_to_build_dir() {
+            if [ ! -z $INPUT_SUBDIR ]; then
+                cd $INPUT_SUBDIR
+            fi
+        }
+
+        check_if_meta_yaml_file_exists() {
+            if [ ! -f meta.yaml ]; then
+                echo "meta.yaml must exist in the directory that is being packaged and published."
+                exit 1
+            fi
+        }
+
+        build_package(){
+            # Build for Linux
+            conda build -c conda-forge -c pytorch -c os-simopt --no-test --output-folder . .
+
+            # Convert to other platforms: OSX, WIN
+            if [[ $INPUT_PLATFORMS == *"osx"* ]]; then
+            conda convert -p osx-64 linux-64/*.tar.bz2
+            fi
+            if [[ $INPUT_PLATFORMS == *"win"* ]]; then
+            conda convert -p win-64 linux-64/*.tar.bz2
+            fi
+        }
+
+        go_to_build_dir
+        check_if_meta_yaml_file_exists
+        build_package      
+
+    - name: publish-to-conda
+      run: |
+        export INPUT_ANACONDATOKEN=${{ secrets.ANACONDA_TOKEN }}      
+      
+        upload_package(){
+            export ANACONDA_API_TOKEN=$INPUT_ANACONDATOKEN
+            if [[ $INPUT_PLATFORMS == *"osx"* ]]; then
+            anaconda upload --label main osx-64/*.tar.bz2
+            fi
+            if [[ $INPUT_PLATFORMS == *"linux"* ]]; then
+            anaconda upload --label main linux-64/*.tar.bz2
+            fi
+            if [[ $INPUT_PLATFORMS == *"win"* ]]; then
+            anaconda upload --label main win-64/*.tar.bz2
+            fi
+        }
+        
+        upload_package

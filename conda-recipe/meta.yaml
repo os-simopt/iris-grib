@@ -1,0 +1,59 @@
+{% set name = 'iris-grib-zsw' %}
+{% set data = load_setup_py_data() %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ data.get('version') }}
+
+source:
+  path: ..
+
+build:
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - pip
+    - python >=3.12
+  run:
+    - setuptools>=64
+    - setuptools_scm>=8
+    - iris>=3.0.2
+    - python-eccodes>=1.6.1
+    - eccodes>=2.33
+    - mo_pack
+    - pip
+    - pre-commit
+
+  # Test dependencies.
+  #  - codecov
+  #  - filelock
+  #  - nox
+  #  - requests
+  #  - iris-sample-data
+  #  - pytest
+  #  - pytest-cov
+  #  - pytest-mock
+
+test:
+  imports:
+    - iris_grib
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/os-simopt/iris-grib
+  summary: ''
+  license: BSD-3
+  license_file:
+    - LICENCE
+    - LICENCES.third_party
+  doc_url: ''
+  dev_url: https://github.com/os-simopt/iris-grib
+
+extra:
+  recipe-maintainers:
+    - 99740179
