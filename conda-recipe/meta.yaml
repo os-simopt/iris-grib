@@ -50,7 +50,7 @@ about:
   license: BSD-3
   license_file:
     - LICENCE
-    - LICENCES.third_party
+    #- LICENCES.third_party
   doc_url: ''
   dev_url: https://github.com/os-simopt/iris-grib
 
