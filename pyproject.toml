@@ -11,8 +11,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 authors = [
-    {name = "Iris-grib Contributors", email = "scitools.pub@gmail.com"}
-    {name = "Iris-grib-zsw Autor", email = "os.simopt@zsw-bw.de"}
+    {name = "Iris-grib Contributors", email = "scitools.pub@gmail.com"},
+    {name = "Iris-grib-zsw Autor", email = "os.simopt@zsw-bw.de"},
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -47,7 +47,7 @@ keywords = [
     "meteorology",
 ]
 license = {text = "BSD-3-Clause"}
-name = "iris-grib"
+name = "iris-grib-zsw"
 requires-python = ">=3.10"
 
 [project.urls]
