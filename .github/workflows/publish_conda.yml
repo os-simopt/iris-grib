@@ -24,13 +24,20 @@ jobs:
       run: |       
         git fetch --prune --unshallow --tags # checkout action does not get these
         git describe --tags --dirty --always
+    - name: Check for meta.yaml
+      run: |
+        if [ ! -f conda-recipe/meta.yaml ]; then
+          echo "meta.yaml file not found in conda-recipe directory"
+          exit 1
+        fi
+        
     - name: Build package
       run: |
         export INPUT_SUBDIR='conda-recipe'
         export INPUT_PLATFORMS='win osx linux'
 
         set -ex
-        set -o pipefail
+        #set -o pipefail
 
         go_to_build_dir() {
             if [ ! -z $INPUT_SUBDIR ]; then
