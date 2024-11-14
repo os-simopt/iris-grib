@@ -1,3 +1,4 @@
+
 name: publish_conda
 
 on:
@@ -47,20 +48,24 @@ jobs:
 
         build_package(){
             # Build for Linux
-            conda build -c conda-forge -c pytorch -c os-simopt --no-test --output-folder . .
+            mkdir -p output
+            conda build -c conda-forge -c pytorch -c os-simopt --no-test --output-folder output .
 
             # Convert to other platforms: OSX, WIN
             if [[ $INPUT_PLATFORMS == *"osx"* ]]; then
-            conda convert -p osx-64 linux-64/*.tar.bz2
+            conda convert -p osx-64 output/linux-64/*.tar.bz2 -o output
             fi
             if [[ $INPUT_PLATFORMS == *"win"* ]]; then
-            conda convert -p win-64 linux-64/*.tar.bz2
+            conda convert -p win-64 output/linux-64/*.tar.bz2 -o output
             fi
         }
 
         go_to_build_dir
         check_if_meta_yaml_file_exists
-        build_package      
+        build_package 
+
+- name: List files in output
+  run: ls -R output
 
     - name: publish-to-conda
       run: |
@@ -80,3 +85,6 @@ jobs:
         }
         
         upload_package
+
+
+
