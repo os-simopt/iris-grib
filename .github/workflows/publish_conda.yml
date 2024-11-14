@@ -30,7 +30,10 @@ jobs:
           echo "meta.yaml file not found in conda-recipe directory"
           exit 1
         fi
-        
+    - name: List all files in the current directory
+      run: ls -R
+    - name: List files in conda-recipe directory
+      run: ls -R conda-recipe
     - name: Build package
       run: |
         export INPUT_SUBDIR='conda-recipe'
