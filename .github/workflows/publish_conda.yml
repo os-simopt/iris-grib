@@ -83,8 +83,8 @@ jobs:
 
     - name: List files in output
       run: |
-      echo $OUTPUT_SUBDIR
-      ls -R $OUTPUT_SUBDIR
+        echo $OUTPUT_SUBDIR
+        ls -R $OUTPUT_SUBDIR
 
     - name: publish-to-conda
       run: |
