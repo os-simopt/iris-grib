@@ -78,7 +78,7 @@ jobs:
         build_package 
 
     - name: List files in output
-      run: ls -R output
+      run: ls -R $OUTPUT_SUBDIR
 
     - name: publish-to-conda
       run: |
