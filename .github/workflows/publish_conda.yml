@@ -77,19 +77,34 @@ jobs:
             fi
         }
 
+        go_to_build_dir() {
+          cd $current_dir
+        }
+
         go_to_build_dir
         check_if_meta_yaml_file_exists
-        build_package 
+        build_package
+        go_to_curr_dir
 
     - name: List files in output
       run: |
+        export current_dir=$(pwd)
+        export INPUT_SUBDIR=$current_dir/'conda-recipe'
+        export OUTPUT_SUBDIR=$current_dir/'conda-recipe/output'
+        pwd
+        echo $current_dir
         echo $OUTPUT_SUBDIR
         ls -R $OUTPUT_SUBDIR
 
     - name: publish-to-conda
       run: |
         export INPUT_ANACONDATOKEN=${{ secrets.ANACONDA_TOKEN }}
+        export current_dir=$(pwd)
+        export INPUT_SUBDIR=$current_dir/'conda-recipe'
+        export OUTPUT_SUBDIR=$current_dir/'conda-recipe/output'        
       
+        # could use a check if any of the expected files actually exist...
+
         upload_package(){
             export ANACONDA_API_TOKEN=$INPUT_ANACONDATOKEN
             if [[ $INPUT_PLATFORMS == *"osx"* ]]; then
