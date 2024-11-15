@@ -41,6 +41,10 @@ jobs:
         export OUTPUT_SUBDIR=$current_dir/'conda-recipe/output'
         export INPUT_PLATFORMS='win osx linux'
 
+        echo $current_dir
+        echo $INPUT_SUBDIR
+        echo $OUTPUT_SUBDIR
+
         set -ex
         set -o pipefail
 
@@ -78,22 +82,24 @@ jobs:
         build_package 
 
     - name: List files in output
-      run: ls -R $OUTPUT_SUBDIR
+      run: |
+      echo $OUTPUT_SUBDIR
+      ls -R $OUTPUT_SUBDIR
 
     - name: publish-to-conda
       run: |
-        export INPUT_ANACONDATOKEN=${{ secrets.ANACONDA_TOKEN }}      
+        export INPUT_ANACONDATOKEN=${{ secrets.ANACONDA_TOKEN }}
       
         upload_package(){
             export ANACONDA_API_TOKEN=$INPUT_ANACONDATOKEN
             if [[ $INPUT_PLATFORMS == *"osx"* ]]; then
-            anaconda upload --label main osx-64/*.tar.bz2
+            anaconda upload --label main $OUTPUT_SUBDIR/osx-64/*.tar.bz2
             fi
             if [[ $INPUT_PLATFORMS == *"linux"* ]]; then
-            anaconda upload --label main linux-64/*.tar.bz2
+            anaconda upload --label main $OUTPUT_SUBDIR/linux-64/*.tar.bz2
             fi
             if [[ $INPUT_PLATFORMS == *"win"* ]]; then
-            anaconda upload --label main win-64/*.tar.bz2
+            anaconda upload --label main $OUTPUT_SUBDIR/win-64/*.tar.bz2
             fi
         }
         
