@@ -36,11 +36,13 @@ jobs:
       run: ls -R conda-recipe
     - name: Build package
       run: |
-        export INPUT_SUBDIR='conda-recipe'
+        export current_dir=$(pwd)
+        export INPUT_SUBDIR=$current_dir/'conda-recipe'
+        export OUTPUT_SUBDIR=$current_dir/'conda-recipe/output'
         export INPUT_PLATFORMS='win osx linux'
 
         set -ex
-        #set -o pipefail
+        set -o pipefail
 
         go_to_build_dir() {
             if [ ! -z $INPUT_SUBDIR ]; then
@@ -58,14 +60,16 @@ jobs:
         build_package(){
             # Build for Linux
             mkdir -p output
-            conda build -c conda-forge -c pytorch -c os-simopt --no-test --output-folder output .
+            # for some reason, a newer version of conda build renames the workfolder, causing trouble downstream.
+            #conda build -c conda-forge -c pytorch -c os-simopt --no-test --output-folder $OUTPUT_SUBDIR .
+            conda build -c conda-forge -c pytorch -c os-simopt --no-test --keep-old-work --output-folder $OUTPUT_SUBDIR .
 
             # Convert to other platforms: OSX, WIN
             if [[ $INPUT_PLATFORMS == *"osx"* ]]; then
-            conda convert -p osx-64 output/linux-64/*.tar.bz2 -o output
+            conda convert -p osx-64 $OUTPUT_SUBDIR/linux-64/*.tar.bz2 -o $OUTPUT_SUBDIR
             fi
             if [[ $INPUT_PLATFORMS == *"win"* ]]; then
-            conda convert -p win-64 output/linux-64/*.tar.bz2 -o output
+            conda convert -p win-64 $OUTPUT_SUBDIR/linux-64/*.tar.bz2 -o $OUTPUT_SUBDIR
             fi
         }
 
@@ -75,7 +79,7 @@ jobs:
 
     - name: List files in output
       run: ls -R output
-      
+
     - name: publish-to-conda
       run: |
         export INPUT_ANACONDATOKEN=${{ secrets.ANACONDA_TOKEN }}      
